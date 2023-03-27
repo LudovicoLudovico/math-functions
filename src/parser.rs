@@ -47,9 +47,6 @@ pub fn parse(input: Split, allow_y: bool, allow_z: bool) -> Result<Function, Par
                 if first_operand.parse::<f64>().is_ok() {
                     return Ok(Function::Num(first_operand.parse::<f64>().unwrap()));
                 }
-                // else if let Some(value) = ctx.get_symbol(first_operand) {
-                //     return Ok(Function::Num(*value));
-                // }
 
                 Err(ParsingError::UnknownToken(first_operand.to_string()))
             }
@@ -83,13 +80,7 @@ fn construct_composite(
             kind: FunctionType::Tan,
             argument,
         }),
-        // "cos" => Ok(Function::Cos { argument }),
-        // "ln" => Ok(Function::Ln { argument }),
-        // "tan" => Ok(Function::Tan { argument }),
         _ => {
-            // if let Some(func) = ctx.get_func(first_operand) {
-            //     return Ok((*func).clone());
-            // }
             Err(ParsingError::UnknownToken(first_operand.to_string()))
         }
     }

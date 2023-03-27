@@ -189,6 +189,15 @@ impl Mul for Function {
                 return val * (self * *terms.1.clone());
             }
         }
+        if let Function::Binary {
+            operation: _,
+            terms,
+        } = &self
+        {
+            if let Function::Num(val) = *terms.0 {
+                return val * (*terms.1.clone() * rhs);
+            }
+        }
 
         Function::Binary {
             terms: (Box::new(self), Box::new(rhs)),
