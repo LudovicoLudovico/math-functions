@@ -1,7 +1,8 @@
 #[cfg(test)]
 mod tests {
+    use crate::matrix::Matrix;
     use crate::splitter::{split, Split};
-    use crate::{approx, Function, FunctionType, Operation, F1D, F3D};
+    use crate::{Function, FunctionType, Operation, F1D, F3D};
     use std::str::FromStr;
 
     impl<'a> Split<'a> {
@@ -225,17 +226,55 @@ mod tests {
             F1D::from_str("(ln(x)+1)*e^(x*ln(x))").unwrap()
         );
 
-        let func = F3D::from_str("xyz").unwrap();
+        let func = F3D::from_str("xyz^2").unwrap();
         assert_eq!(
             func.derivative(),
             (
-                F3D::from_str("yz").unwrap(),
-                F3D::from_str("xz").unwrap(),
-                F3D::from_str("xy").unwrap()
+                F3D::from_str("yz^2").unwrap(),
+                F3D::from_str("xz^2").unwrap(),
+                F3D::from_str("xy(2*z)").unwrap()
             )
         )
     }
 
+    #[test]
+    fn test_hessian() {
+        let func = F3D::from_str("3x^2+y^4+xyz^2").unwrap();
+        let hessian = func.hessian();
+        println!("{:#?}", hessian);
+
+        let result: Matrix<F3D> = Matrix {
+            mat: vec![
+                F3D::from_str("6").unwrap(),
+                F3D::from_str("z^2").unwrap(),
+                F3D::from_str("y(2z)").unwrap(),
+                F3D::from_str("z^2").unwrap(),
+                F3D::from_str("12y^2").unwrap(),
+                F3D::from_str("x(2z)").unwrap(),
+                F3D::from_str("y(2z)").unwrap(),
+                F3D::from_str("x(2z)").unwrap(),
+                F3D::from_str("xy(2)").unwrap(),
+            ],
+            n_col: 3,
+            n_row: 3,
+        };
+
+        println!("{:#?}", result);
+        assert_eq!(result, hessian);
+    }
+
+    #[test]
+    fn test_mat() {
+        let mat = Matrix {
+            mat: vec![1., 2., 3., 4., 5., 6., 7., 8., 9.],
+            n_col: 3,
+            n_row: 3,
+        };
+
+        assert_eq!(3., *mat.get(1, 3));
+
+        assert_eq!(9., *mat.get(3, 3))
+    }
     // #[test]
     // fn test_integration() {
     //     let func = F1D::from_str("x^3").unwrap();

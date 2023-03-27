@@ -1,3 +1,4 @@
+pub mod matrix;
 pub mod operations;
 pub mod operators;
 mod parser;
@@ -25,9 +26,9 @@ pub enum Function {
     },
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(Debug, PartialEq)]
 pub struct F1D(Function);
-#[derive(PartialEq, Debug)]
+#[derive(Debug, PartialEq)]
 pub struct F2D(Function);
 #[derive(PartialEq, Debug)]
 pub struct F3D(Function);

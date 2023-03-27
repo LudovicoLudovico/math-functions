@@ -124,17 +124,19 @@ impl Mul for Function {
                 return rhs;
             }
 
-            if let Function::Binary { terms, operation } = &rhs {
-                if let Operation::Mul = operation {
-                    if let Function::Num(val_2) = *terms.0 {
-                        return Function::Binary {
-                            terms: (
-                                Box::new(Function::Num(val * val_2)),
-                                Box::new(*terms.1.clone()),
-                            ),
-                            operation: Operation::Mul,
-                        };
-                    }
+            if let Function::Binary {
+                terms,
+                operation: Operation::Mul,
+            } = &rhs
+            {
+                if let Function::Num(val_2) = *terms.0 {
+                    return Function::Binary {
+                        terms: (
+                            Box::new(Function::Num(val * val_2)),
+                            Box::new(*terms.1.clone()),
+                        ),
+                        operation: Operation::Mul,
+                    };
                 }
             }
         }
