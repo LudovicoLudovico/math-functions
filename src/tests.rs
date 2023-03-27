@@ -241,7 +241,6 @@ mod tests {
     fn test_hessian() {
         let func = F3D::from_str("3x^2+y^4+xyz^2").unwrap();
         let hessian = func.hessian();
-        println!("{:#?}", hessian);
 
         let result: Matrix<F3D> = Matrix {
             mat: vec![
@@ -258,8 +257,6 @@ mod tests {
             n_col: 3,
             n_row: 3,
         };
-
-        println!("{:#?}", result);
         assert_eq!(result, hessian);
     }
 

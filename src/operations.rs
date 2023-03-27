@@ -308,18 +308,19 @@ impl Display for Function {
                 FunctionType::ATanh => write!(f, "atanh({argument})"),
                 FunctionType::Abs => write!(f, "|{argument}|"),
             },
-            Self::Binary { terms, operation } => {
-                let operator = match operation {
-                    Operation::Add => '+',
-                    Operation::Sub => '-',
-                    Operation::Mul => '*',
-                    Operation::Div => '/',
-                    Operation::Pow => '^',
-                    Operation::Comp => panic!("Something went wrong"),
-                };
-
-                write!(f, "({}{}{})", terms.0, operator, terms.1)
-            }
+            Self::Binary { terms, operation } => match operation {
+                Operation::Add => write!(f, "({}+{})", terms.0, terms.1),
+                Operation::Sub => write!(f, "({}-{})", terms.0, terms.1),
+                Operation::Mul => write!(f, "{}{}", terms.0, terms.1),
+                Operation::Div => write!(f, "{}/{}", terms.0, terms.1),
+                Operation::Pow => {
+                    if let Function::Num(_) = *terms.1 {
+                        return write!(f, "{}^{}", terms.0, terms.1);
+                    }
+                    write!(f, "{}^({})", terms.0, terms.1)
+                }
+                Operation::Comp => panic!("Something went wrong"),
+            },
         }
     }
 }

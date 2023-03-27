@@ -1,4 +1,5 @@
 use super::{Function, Operation, F1D, F2D, F3D};
+use std::fmt::Display;
 use std::ops::{Add, Div, Mul, Sub};
 
 macro_rules! impl_ops{
@@ -29,6 +30,11 @@ macro_rules! impl_ops{
             fn div(self, rhs: Self) -> Self
             {
                 Self(self.0 / rhs.0)
+            }
+        })*
+        $(impl Display for $t {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(f, "{}", self.0)
             }
         })*
         $(impl $t {
@@ -140,14 +146,6 @@ impl Mul for Function {
                 }
             }
         }
-        if let Function::Num(val) = rhs {
-            if val == 0. {
-                return Function::Num(0.);
-            }
-            if val == 1. {
-                return self;
-            }
-        }
 
         if let Function::Binary {
             terms,
@@ -166,6 +164,29 @@ impl Mul for Function {
         {
             if *terms.1 == rhs {
                 return *terms.0.clone();
+            }
+        }
+
+        if let Function::Num(val) = rhs {
+            if val == 0. {
+                return Function::Num(0.);
+            }
+            if val == 1. {
+                return self;
+            }
+            return Function::Binary {
+                operation: Operation::Mul,
+                terms: (Box::new(rhs), Box::new(self)),
+            };
+        }
+
+        if let Function::Binary {
+            operation: _,
+            terms,
+        } = &rhs
+        {
+            if let Function::Num(val) = *terms.0 {
+                return val * (self * *terms.1.clone());
             }
         }
 
