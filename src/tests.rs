@@ -2,7 +2,7 @@
 mod tests {
     use crate::matrix::Matrix;
     use crate::splitter::{split, Split};
-    use crate::{Function, FunctionType, Operation, F1D, F3D};
+    use crate::{approx, Function, FunctionType, Operation, F1D, F3D};
     use std::str::FromStr;
 
     impl<'a> Split<'a> {
@@ -257,6 +257,7 @@ mod tests {
             n_col: 3,
             n_row: 3,
         };
+        println!("{}", result);
         assert_eq!(result, hessian);
     }
 
@@ -272,15 +273,15 @@ mod tests {
 
         assert_eq!(9., *mat.get(3, 3))
     }
-    // #[test]
-    // fn test_integration() {
-    //     let func = F1D::from_str("x^3").unwrap();
-    //     assert_eq!(approx(func.integrate(-1., 1.5), 4), 1.0156);
-    //
-    //     let func = Function::from_str("sin(x)^2").unwrap();
-    //     assert_eq!(
-    //         approx(func.integrate(0., 2. * std::f64::consts::PI), 8),
-    //         3.14159265
-    //     );
-    // }Function
+    #[test]
+    fn test_integration() {
+        let func = F1D::from_str("x^3").unwrap();
+        assert_eq!(approx(func.integrate(-1., 1.5, 10_000), 4), 1.0156);
+
+        let func = F1D::from_str("sin(x)^2").unwrap();
+        assert_eq!(
+            approx(func.integrate(0., 2. * std::f64::consts::PI, 10_000), 8),
+            3.14159265
+        );
+    }
 }

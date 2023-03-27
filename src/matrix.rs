@@ -16,20 +16,15 @@ impl<T: Copy> Matrix<T> {
 impl<T: Display> Display for Matrix<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut result = String::new();
-        let length = 20;
 
         for (i, el) in self.mat.iter().enumerate() {
             if i % self.n_col == 0 {
                 result += "|\n";
             }
 
-            let el = el.to_string();
-            result += "|";
-            let new = format!("{:^width$}", el, width = length);
-            result += &new;
+            result += &format!("|{:^width$}", el.to_string(), width = 20);
         }
-        result += "|";
 
-        write!(f, "{}", result)
+        write!(f, "{}|", result)
     }
 }

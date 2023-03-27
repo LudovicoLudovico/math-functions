@@ -210,6 +210,17 @@ impl F1D {
     pub fn derivative(&self) -> Self {
         F1D(self.0.derivative(1., 0., 0.))
     }
+
+    pub fn integrate(&self, a: f64, b: f64, steps: u32) -> f64 {
+        let mut result = 0.;
+
+        for i in 1..=steps {
+            // Evaluating function at midpoint of dx
+            result += self.eval(a + ((b - a) / steps as f64) * (i as f64 - 0.5));
+        }
+
+        ((b - a) / steps as f64) * result
+    }
 }
 
 impl F2D {
