@@ -38,6 +38,7 @@ macro_rules! impl_ops{
             }
         })*
         $(impl $t {
+            /// Raise function to a f64
             pub fn powf(self, exp: f64) -> Self {
                 Self(
                     Function::Binary {
@@ -77,6 +78,46 @@ impl Add for Function {
             }
         }
 
+        if self == rhs {
+            return 2. * self;
+        }
+
+        if let Function::Binary {
+            operation: Operation::Add,
+            terms,
+        } = &self
+        {
+            if *terms.0 == rhs {
+                return 2. * *terms.0.clone() + *terms.1.clone();
+            } else if *terms.1 == rhs {
+                return 2. * *terms.1.clone() + *terms.0.clone();
+            }
+        }
+
+        if let Function::Binary {
+            operation: Operation::Sub,
+            terms,
+        } = &self
+        {
+            if *terms.0 == rhs {
+                return 2. * *terms.0.clone() - *terms.1.clone();
+            } else if *terms.1 == rhs {
+                return *terms.0.clone();
+            }
+        }
+
+        if let Function::Binary {
+            operation: Operation::Mul,
+            terms,
+        } = &self
+        {
+            if let Function::Num(coefficient) = *terms.0 {
+                if *terms.1 == rhs {
+                    return (coefficient + 1.) * rhs;
+                }
+            }
+        }
+
         Function::Binary {
             terms: (Box::new(self), Box::new(rhs)),
             operation: Operation::Add,
@@ -104,6 +145,34 @@ impl Sub for Function {
             }
         }
 
+        if self == rhs {
+            return Function::Num(0.);
+        }
+
+        if let Function::Binary {
+            operation: Operation::Add,
+            terms,
+        } = &self
+        {
+            if *terms.0 == rhs {
+                return *terms.1.clone();
+            } else if *terms.1 == rhs {
+                return *terms.0.clone();
+            }
+        }
+
+        if let Function::Binary {
+            operation: Operation::Sub,
+            terms,
+        } = &self
+        {
+            if *terms.0 == rhs {
+                return -1. * *terms.1.clone();
+            } else if *terms.1 == rhs {
+                return *terms.0.clone() - 2. * rhs;
+            }
+        }
+
         Function::Binary {
             terms: (Box::new(self), Box::new(rhs)),
             operation: Operation::Sub,
@@ -122,6 +191,10 @@ impl Mul for Function {
     type Output = Self;
 
     fn mul(self, rhs: Self) -> Self::Output {
+        if self == rhs {
+            return self.powf(2.);
+        }
+
         if let &Function::Num(val) = &self {
             if val == 0. {
                 return Function::Num(0.);
@@ -136,14 +209,12 @@ impl Mul for Function {
             } = &rhs
             {
                 if let Function::Num(val_2) = *terms.0 {
-                    return Function::Binary {
-                        terms: (
-                            Box::new(Function::Num(val * val_2)),
-                            Box::new(*terms.1.clone()),
-                        ),
-                        operation: Operation::Mul,
-                    };
+                    return (val * val_2) * *terms.1.clone();
                 }
+            }
+
+            if let Function::Num(val_2) = &rhs {
+                return Function::Num(val * val_2);
             }
         }
 
@@ -174,14 +245,30 @@ impl Mul for Function {
             if val == 1. {
                 return self;
             }
-            return Function::Binary {
+            if let Function::Binary {
+                terms,
                 operation: Operation::Mul,
-                terms: (Box::new(rhs), Box::new(self)),
-            };
+            } = &self
+            {
+                if let Function::Num(val_2) = *terms.0 {
+                    return (val * val_2) * *terms.1.clone();
+                }
+            }
+
+            if let Function::Num(val_2) = &self {
+                return Function::Num(val * val_2);
+            }
         }
 
         if let Function::Binary {
-            operation: _,
+            operation: Operation::Div,
+            terms,
+        } = &rhs
+        {
+            return self * *terms.0.clone() / *terms.1.clone();
+        }
+        if let Function::Binary {
+            operation: Operation::Mul,
             terms,
         } = &rhs
         {
@@ -189,6 +276,7 @@ impl Mul for Function {
                 return val * (self * *terms.1.clone());
             }
         }
+
         if let Function::Binary {
             operation: _,
             terms,
@@ -199,6 +287,30 @@ impl Mul for Function {
             }
         }
 
+        if let Function::Binary {
+            operation: Operation::Pow,
+            terms,
+        } = &self
+        {
+            if let Function::Num(exponent) = *terms.1 {
+                if *terms.0 == rhs {
+                    return terms.0.clone().powf(exponent + 1.);
+                }
+
+                let base = &terms.0;
+                if let Function::Binary {
+                    operation: Operation::Pow,
+                    terms,
+                } = &rhs
+                {
+                    if let Function::Num(exp_2) = *terms.1 {
+                        if base == &terms.0 {
+                            return terms.0.clone().powf(exponent + exp_2);
+                        }
+                    }
+                }
+            }
+        }
         Function::Binary {
             terms: (Box::new(self), Box::new(rhs)),
             operation: Operation::Mul,
@@ -212,6 +324,20 @@ impl Div for Function {
     fn div(self, rhs: Self) -> Self::Output {
         if self == rhs {
             return Function::Num(1.);
+        }
+
+        if let Function::Num(val) = rhs {
+            if val == 1. {
+                return self;
+            }
+        }
+        if let Function::Num(val1) = self {
+            if val1 == 0. {
+                return Function::Num(0.);
+            }
+            if let Function::Num(val2) = rhs {
+                return Function::Num(val1 / val2);
+            }
         }
 
         Function::Binary {
@@ -246,6 +372,11 @@ impl Mul<Function> for f64 {
 
 impl Function {
     pub fn pow(self, rhs: Self) -> Self {
+        if let Function::Num(val_1) = &self {
+            if let Function::Num(val_2) = &rhs {
+                return Function::Num(val_1.powf(*val_2));
+            }
+        }
         Function::Binary {
             terms: (Box::new(self), Box::new(rhs)),
             operation: Operation::Pow,

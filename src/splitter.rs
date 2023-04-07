@@ -2,7 +2,7 @@ use super::Operation;
 use std::error::Error;
 use std::fmt::Display;
 
-pub fn split(input: &str) -> Result<Split, ParsingError> {
+pub(crate) fn split(input: &str) -> Result<Split, ParsingError> {
     if input.is_empty() {
         return Err(ParsingError::EmptyInput);
     }
@@ -50,7 +50,7 @@ fn try_implicit_mul<'a>(
 ) {
     if let Some(next) = next {
         if (current.is_numeric()
-            || current == ')'
+            || is_close_par(current)
             || current == 'x'
             || current == 'y'
             || current == 'z')
@@ -74,7 +74,7 @@ fn is_open_par(char: char) -> bool {
 fn unwrap_par(input: &str) -> &str {
     let mut par_counter = 0;
 
-    if input.is_empty() || !input[0..1].starts_with('(') {
+    if input.is_empty() || !matches!(&input[0..1], "(" | "[" | "{") {
         return input;
     }
 
@@ -98,7 +98,7 @@ fn unwrap_par(input: &str) -> &str {
 }
 
 #[derive(PartialEq, Debug)]
-pub struct Split<'a> {
+pub(crate) struct Split<'a> {
     pub first_operand: &'a str,
     pub second_operand: Option<&'a str>,
     pub operator: Operation,
@@ -146,6 +146,7 @@ pub enum ParsingError {
     MismatchedParenthesis,
     EmptyInput,
     InvalidInput,
+    CantUseHigherDimensionsFunc,
 }
 
 impl Display for ParsingError {
@@ -155,6 +156,10 @@ impl Display for ParsingError {
             Self::MismatchedParenthesis => write!(f, "Mismatched Parenthesis"),
             Self::EmptyInput => write!(f, "Input is empty"),
             Self::InvalidInput => write!(f, "Invalid input"),
+            Self::CantUseHigherDimensionsFunc => write!(
+                f,
+                "Can't mix higer dimensions functions and lower dimensions"
+            ),
         }
     }
 }

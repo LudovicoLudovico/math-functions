@@ -1,6 +1,9 @@
-use crate::matrix::Matrix;
-
 use super::{Function, FunctionType, Operation, F1D, F2D, F3D};
+use crate::context::Context;
+use crate::matrix::Matrix;
+use crate::matrix::{Vec2, Vec3};
+use crate::parser::parse;
+use crate::splitter::{split, ParsingError};
 use std::fmt::Display;
 
 impl Function {
@@ -203,14 +206,64 @@ impl Function {
     }
 }
 impl F1D {
+    /// Builds a F1D from a string and a context (meaning that you can use already created
+    /// functions)
+    /// ```
+    /// use math_functions::{F1D, context::Context};
+    /// use std::str::FromStr;
+    ///
+    /// let func = F1D::from_str("x^2").unwrap();
+    /// let mut ctx = Context::new();
+    ///
+    /// ctx.add_f1d("POWER", &func);
+    ///
+    /// let func2 = F1D::build("POWER(x)+POWER(x)", &ctx);
+    ///
+    /// assert_eq!(func2, F1D::from_str("x^2+x^2"));
+    /// ```
+    pub fn build(input: &str, ctx: &Context) -> Result<Self, ParsingError> {
+        let res = parse(split(input)?, ctx, 1);
+        match res {
+            Ok(func) => Ok(F1D(func)),
+            Err(err) => Err(err),
+        }
+    }
+
+    /// Evaluate F1D at a given x
+    /// ```
+    /// use math_functions::{F1D,approx};
+    /// use std::str::FromStr;
+    ///
+    /// let func = F1D::from_str("xsin(x)").unwrap();
+    ///
+    /// assert_eq!(approx(func.eval(2.), 5), 1.81859);
+    /// ```
     pub fn eval(&self, x: f64) -> f64 {
         self.0.evaluate(&[x, 0., 0.])
     }
 
+    /// Computes the derivative of a F1D
+    /// ```
+    /// use math_functions::F1D;
+    /// use std::str::FromStr;
+    ///
+    /// let func = F1D::from_str("xln(x)").unwrap();
+    ///
+    /// assert_eq!(func.derivative(), F1D::from_str("ln(x)+1").unwrap());
+    /// ```
     pub fn derivative(&self) -> Self {
         F1D(self.0.derivative(1., 0., 0.))
     }
 
+    /// Computes the definite integral of F1D
+    /// ```
+    /// use math_functions::{F1D,approx};
+    /// use std::str::FromStr;
+    ///
+    /// let func = F1D::from_str("x^2+6").unwrap();
+    ///
+    /// assert_eq!(approx(func.integrate(0.,1., 10_000), 5), 6.33333)
+    /// ```
     pub fn integrate(&self, a: f64, b: f64, steps: u32) -> f64 {
         let mut result = 0.;
 
@@ -224,36 +277,145 @@ impl F1D {
 }
 
 impl F2D {
+    /// Builds a F2D from a string and a context (meaning that you can use already created
+    /// functions)
+    /// ```
+    /// use math_functions::{F1D,F2D,F3D, context::Context};
+    /// use std::str::FromStr;
+    ///
+    /// let func = F1D::from_str("x^2").unwrap();
+    /// let mut ctx = Context::new();
+    ///
+    /// ctx.add_f1d("POWER", &func);
+    ///
+    /// let func2 = F2D::build("y(POWER+POWER)", &ctx).unwrap();
+    ///
+    /// assert_eq!(func2, F2D::from_str("y(x^2+x^2)").unwrap());
+    /// ```
+    pub fn build(input: &str, ctx: &Context) -> Result<Self, ParsingError> {
+        let res = parse(split(input)?, ctx, 2);
+        match res {
+            Ok(func) => Ok(F2D(func)),
+            Err(err) => Err(err),
+        }
+    }
+    /// Evaluate F2D at a given (x,y)
+    /// ```
+    /// use math_functions::{F2D,approx};
+    /// use std::str::FromStr;
+    ///
+    /// let func = F2D::from_str("ysin(x)").unwrap();
+    ///
+    /// assert_eq!(approx(func.eval(2., 0.5), 5), 0.45465);
+    /// ```
     pub fn eval(&self, x: f64, y: f64) -> f64 {
         self.0.evaluate(&[x, y, 0.])
     }
 
-    pub fn derivative(&self) -> (Self, Self) {
-        (
-            F2D(self.0.derivative(1., 0., 0.)),
-            F2D(self.0.derivative(0., 1., 0.)),
-        )
+    /// Computes the derivative of a F2D
+    /// ```
+    /// use math_functions::{F2D, Vec2};
+    /// use std::str::FromStr;
+    ///
+    /// let func = F2D::from_str("yln(x)").unwrap();
+    ///
+    /// assert_eq!(func.derivative(), Vec2{ x: F2D::from_str("y/x").unwrap(), y:
+    /// F2D::from_str("ln(x)").unwrap()});
+    /// ```
+    pub fn derivative(&self) -> Vec2<Self> {
+        Vec2 {
+            x: F2D(self.0.derivative(1., 0., 0.)),
+            y: F2D(self.0.derivative(0., 1., 0.)),
+        }
     }
 }
 impl F3D {
+    /// Builds a F3D from a string and a context (meaning that you can use already created
+    /// functions)
+    /// ```
+    /// use math_functions::{F2D,F3D, context::Context};
+    /// use std::str::FromStr;
+    ///
+    /// let func = F2D::from_str("yx^2").unwrap();
+    /// let mut ctx = Context::new();
+    ///
+    /// ctx.add_f2d("CUSTOM", &func);
+    ///
+    /// let func2 = F3D::build("z(CUSTOM+CUSTOM)", &ctx).unwrap();
+    ///
+    /// assert_eq!(func2, F3D::from_str("z(yx^2+yx^2)").unwrap());
+    /// ```
+    pub fn build(input: &str, ctx: &Context) -> Result<Self, ParsingError> {
+        let res = parse(split(input)?, ctx, 3);
+        match res {
+            Ok(func) => Ok(F3D(func)),
+            Err(err) => Err(err),
+        }
+    }
+    /// Evaluate F3D at a given (x,y,z)
+    /// ```
+    /// use math_functions::{F3D,approx};
+    /// use std::str::FromStr;
+    ///
+    /// let func = F3D::from_str("ysin(x)ln(z)").unwrap();
+    ///
+    /// assert_eq!(approx(func.eval(2., 0.5, 4.), 5), 0.63028);
+    /// ```
     pub fn eval(&self, x: f64, y: f64, z: f64) -> f64 {
         self.0.evaluate(&[x, y, z])
     }
 
-    pub fn derivative(&self) -> (Self, Self, Self) {
-        (
-            F3D(self.0.derivative(1., 0., 0.)),
-            F3D(self.0.derivative(0., 1., 0.)),
-            F3D(self.0.derivative(0., 0., 1.)),
-        )
+    /// Computes the gradient of a F3D
+    /// ```
+    /// use math_functions::{F3D, Vec3};
+    /// use std::str::FromStr;
+    ///
+    /// let func = F3D::from_str("xyz^2").unwrap();
+    ///
+    /// assert_eq!(func.derivative(), Vec3{ x: F3D::from_str("yz^2").unwrap(), y:
+    /// F3D::from_str("xz^2").unwrap(), z: F3D::from_str("2xyz").unwrap()});
+    /// ```
+    pub fn derivative(&self) -> Vec3<Self> {
+        Vec3 {
+            x: F3D(self.0.derivative(1., 0., 0.)),
+            y: F3D(self.0.derivative(0., 1., 0.)),
+            z: F3D(self.0.derivative(0., 0., 1.)),
+        }
     }
+    /// Computes hessian matrix of the given function
+    ///  ```
+    ///  use math_functions::{F3D, Matrix};
+    ///  use std::str::FromStr;
+    ///  let func = F3D::from_str("3x^2+y^4+xyz^2").unwrap();
+    ///  let hessian = func.hessian();
+    ///  println!("{}", hessian);
+    /// //|         6          |        z^2         |        2yz         |
+    /// //|        z^2         |       12y^2        |        2xz         |
+    /// //|        2yz         |        2xz         |        2xy         |
+    /// let result: Matrix<F3D> = Matrix::new(
+    ///     vec![
+    ///         F3D::from_str("6").unwrap(),
+    ///         F3D::from_str("z^2").unwrap(),
+    ///         F3D::from_str("2yz").unwrap(),
+    ///         F3D::from_str("z^2").unwrap(),
+    ///         F3D::from_str("12y^2").unwrap(),
+    ///         F3D::from_str("2xz").unwrap(),
+    ///         F3D::from_str("2yz").unwrap(),
+    ///         F3D::from_str("2xz").unwrap(),
+    ///         F3D::from_str("2xy").unwrap(),
+    ///     ],
+    ///     3,
+    ///     3,
+    /// );
+    /// assert_eq!(result, hessian);
+    /// ```
     pub fn hessian(&self) -> Matrix<F3D> {
         let deriv_x = self.0.derivative(1., 0., 0.);
         let deriv_y = self.0.derivative(0., 1., 0.);
         let deriv_z = self.0.derivative(0., 0., 1.);
 
-        Matrix {
-            mat: vec![
+        Matrix::new(
+            vec![
                 F3D(deriv_x.derivative(1., 0., 0.)),
                 F3D(deriv_x.derivative(0., 1., 0.)),
                 F3D(deriv_x.derivative(0., 0., 1.)),
@@ -264,17 +426,34 @@ impl F3D {
                 F3D(deriv_z.derivative(0., 1., 0.)),
                 F3D(deriv_z.derivative(0., 0., 1.)),
             ],
-            n_col: 3,
-            n_row: 3,
-        }
+            3,
+            3,
+        )
     }
 }
 
 fn eval_trascendental(kind: &FunctionType, arg: f64) -> f64 {
     match kind {
+        FunctionType::Ln => arg.ln(),
         FunctionType::Sin => arg.sin(),
         FunctionType::Cos => arg.cos(),
-        _ => todo!(),
+        FunctionType::Tan => arg.tan(),
+        FunctionType::Cot => 1. / arg.tan(),
+        FunctionType::Sec => 1. / arg.cos(),
+        FunctionType::Csc => 1. / arg.sin(),
+        FunctionType::ASin => arg.asin(),
+        FunctionType::ACos => arg.acos(),
+        FunctionType::ATan => arg.atan(),
+        FunctionType::Sinh => arg.sinh(),
+        FunctionType::Cosh => arg.cosh(),
+        FunctionType::Tanh => arg.tanh(),
+        FunctionType::Coth => 1. / arg.tanh(),
+        FunctionType::Sech => 1. / arg.cosh(),
+        FunctionType::Csch => 1. / arg.sinh(),
+        FunctionType::ASinh => arg.asinh(),
+        FunctionType::ACosh => arg.acosh(),
+        FunctionType::ATanh => arg.atanh(),
+        FunctionType::Abs => arg.abs(),
     }
 }
 
@@ -320,15 +499,59 @@ impl Display for Function {
                 FunctionType::Abs => write!(f, "|{argument}|"),
             },
             Self::Binary { terms, operation } => match operation {
-                Operation::Add => write!(f, "({}+{})", terms.0, terms.1),
-                Operation::Sub => write!(f, "({}-{})", terms.0, terms.1),
-                Operation::Mul => write!(f, "{}{}", terms.0, terms.1),
+                Operation::Add => write!(f, "{}+{}", terms.0, terms.1),
+                Operation::Sub => write!(f, "{}-{}", terms.0, terms.1),
+                Operation::Mul => {
+                    let first = &terms.0;
+                    let second = &terms.1;
+
+                    if let Function::Binary {
+                        operation: Operation::Add | Operation::Sub,
+                        terms: _,
+                    } = &*terms.0
+                    {
+                        return write!(f, "({}){}", first, second);
+                    }
+                    if let Function::Binary {
+                        operation: Operation::Add | Operation::Sub,
+                        terms: _,
+                    } = &*terms.1
+                    {
+                        return write!(f, "{}({})", first, second);
+                    }
+
+                    write!(f, "{}{}", terms.0, terms.1)
+                }
                 Operation::Div => write!(f, "{}/{}", terms.0, terms.1),
                 Operation::Pow => {
+                    let first = &terms.0;
+                    let second = &terms.1;
+
                     if let Function::Num(_) = *terms.1 {
                         return write!(f, "{}^{}", terms.0, terms.1);
                     }
-                    write!(f, "{}^({})", terms.0, terms.1)
+                    if let Function::Binary {
+                        operation: Operation::Add | Operation::Sub,
+                        terms: _,
+                    } = &*terms.0
+                    {
+                        if let Function::Binary {
+                            operation: _,
+                            terms: _,
+                        } = &*terms.1
+                        {
+                            return write!(f, "({})^({})", first, second);
+                        }
+                        return write!(f, "({})^{}", first, second);
+                    }
+                    if let Function::Binary {
+                        operation: _,
+                        terms: _,
+                    } = &*terms.1
+                    {
+                        return write!(f, "{}^({})", first, second);
+                    }
+                    write!(f, "{}^{}", terms.0, terms.1)
                 }
                 Operation::Comp => panic!("Something went wrong"),
             },
