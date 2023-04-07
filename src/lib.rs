@@ -139,7 +139,9 @@ impl FromStr for F1D {
     type Err = ParsingError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match parse(split(s)?, &Context::new(), 1) {
+        let mut s = s.to_string();
+        s.retain(|c| !c.is_whitespace());
+        match parse(split(&s)?, &Context::new(), 1) {
             Ok(val) => Ok(F1D(val)),
             Err(err) => Err(err),
         }
@@ -149,7 +151,9 @@ impl FromStr for F2D {
     type Err = ParsingError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match parse(split(s)?, &Context::new(), 2) {
+        let mut s = s.to_string();
+        s.retain(|c| !c.is_whitespace());
+        match parse(split(&s)?, &Context::new(), 2) {
             Ok(val) => Ok(F2D(val)),
             Err(err) => Err(err),
         }
@@ -159,7 +163,9 @@ impl FromStr for F3D {
     type Err = ParsingError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match parse(split(s)?, &Context::new(), 3) {
+        let mut s = s.to_string();
+        s.retain(|c| !c.is_whitespace());
+        match parse(split(&s)?, &Context::new(), 3) {
             Ok(val) => Ok(F3D(val)),
             Err(err) => Err(err),
         }

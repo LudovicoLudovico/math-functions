@@ -1,5 +1,7 @@
 [package]
 name = "math-functions"
+author = "Ludovico Furlanetto"
+description = "A math library that allows for parsing functions from string and perform integration, derivation and evaluation. Also supports functions with 2 and 3 variables"
 version = "0.1.0"
 edition = "2021"
 
