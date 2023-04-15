@@ -14,6 +14,30 @@ impl Pol {
         }
         Pol(input)
     }
+    pub fn solve(&self) -> Vec<f64> {
+        if self.0.len() == 3 {
+            let a = self.0[2];
+            let b = self.0[1];
+            let c = self.0[0];
+
+            vec![
+                (-b + (b.powf(2.) - 4. * a * c).sqrt()) / (2. * a),
+                (-b - (b.powf(2.) - 4. * a * c).sqrt()) / (2. * a),
+            ]
+        } else if self.0.len() == 4 && self.0[0] == 0. {
+            let a = self.0[3];
+            let b = self.0[2];
+            let c = self.0[1];
+
+            vec![
+                0.,
+                (-b + (b.powf(2.) - 4. * a * c).sqrt()) / (2. * a),
+                (-b - (b.powf(2.) - 4. * a * c).sqrt()) / (2. * a),
+            ]
+        } else {
+            panic!("Couldn't solve pol")
+        }
+    }
 }
 
 impl Display for Pol {

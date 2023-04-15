@@ -1,9 +1,9 @@
 use super::{Function, FunctionType, Operation, F1D, F2D, F3D};
 use crate::context::Context;
-use crate::matrix::Matrix;
-use crate::matrix::{Vec2, Vec3};
-use crate::parser::parse;
-use crate::splitter::{split, ParsingError};
+use super::Matrix;
+use super::{Vec2, Vec3};
+use crate::parser::{parse, ParsingError};
+use crate::parser::splitter::split;
 use std::fmt::Display;
 
 impl Function {

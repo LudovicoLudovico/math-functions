@@ -1,4 +1,4 @@
-use crate::polynomials::Pol;
+use super::polynomials::Pol;
 use crate::{F2D, F3D};
 use std::fmt::Display;
 
@@ -42,13 +42,13 @@ impl<T> Matrix<T> {
     }
 }
 
-impl<T: std::ops::AddAssign<T> + Clone> Matrix<T> {
+impl<T: std::ops::Add<Output = T> + Clone> Matrix<T> {
     /// Calculate the trace of the matrix
     pub fn trace(&self) -> T {
         let mut result = self.get(1, 1).clone();
 
         for i in 2..=self.n_row {
-            result += (*self.get(i, i)).clone();
+            result = result + (*self.get(i, i)).clone();
         }
 
         result

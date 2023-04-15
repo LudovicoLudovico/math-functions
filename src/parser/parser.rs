@@ -1,6 +1,6 @@
-use super::context::Context;
+use crate::context::Context;
 use super::splitter::{split, ParsingError, Split};
-use super::{Function, FunctionType, Operation};
+use crate::{Function, FunctionType, Operation};
 
 pub(crate) fn parse(input: Split, ctx: &Context, dim: usize) -> Result<Function, ParsingError> {
     let second_operand = input.second_operand;

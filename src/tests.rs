@@ -1,37 +1,37 @@
 #[cfg(test)]
 mod tests {
-    use crate::matrix::{Matrix, Vec3};
-    use crate::polynomials::Pol;
-    use crate::splitter::{split, Split};
+    use crate::algebra::matrix::{Matrix, Vec3};
+    use crate::algebra::polynomials::Pol;
+    use crate::parser::splitter::split;
+    use crate::parser::splitter::Split;
     use crate::{approx, Function, FunctionType, Operation, F1D, F3D};
     use std::str::FromStr;
 
-    impl<'a> Split<'a> {
-        fn build(
-            first_operand: &'a str,
-            second_operand: Option<&'a str>,
-            operation: char,
-        ) -> Split<'a> {
-            let operator = match operation {
-                '+' => Operation::Add,
-                '-' => Operation::Sub,
-                '*' => Operation::Mul,
-                '/' => Operation::Div,
-                '^' => Operation::Pow,
-                '(' => Operation::Comp,
-                _ => panic!("Called update with invalid operation"),
-            };
-
-            Split {
-                first_operand,
-                second_operand,
-                operator,
-            }
-        }
-    }
-
     #[test]
     fn test_tokenzier() {
+        impl<'a> Split<'a> {
+            fn build(
+                first_operand: &'a str,
+                second_operand: Option<&'a str>,
+                operation: char,
+            ) -> Split<'a> {
+                let operator = match operation {
+                    '+' => Operation::Add,
+                    '-' => Operation::Sub,
+                    '*' => Operation::Mul,
+                    '/' => Operation::Div,
+                    '^' => Operation::Pow,
+                    '(' => Operation::Comp,
+                    _ => panic!("Called update with invalid operation"),
+                };
+
+                Split {
+                    first_operand,
+                    second_operand,
+                    operator,
+                }
+            }
+        }
         assert_eq!(split("x^0.5").unwrap(), Split::build("x", Some("0.5"), '^'));
         assert_eq!(split("3x").unwrap(), Split::build("3", Some("x"), '*'));
         assert_eq!(
@@ -269,6 +269,7 @@ mod tests {
     fn test_mat() {
         let mat = Matrix::new(vec![1., 2., 3., 4., 5., 6., 7., 8., 9.], 3, 3);
         println!("{}", mat.pol());
+
         assert_eq!(3., *mat.get(1, 3));
         assert_eq!(9., *mat.get(3, 3));
         assert!(!mat.is_symmetric());

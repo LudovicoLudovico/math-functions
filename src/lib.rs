@@ -1,6 +1,8 @@
-#![deny(warnings, missing_docs)]
+#![deny(warnings)]
 //! Crate for math functions
 
+/// Polynomials
+pub mod algebra;
 /// Contains context
 pub mod context;
 /// Operations
@@ -8,16 +10,11 @@ pub mod operations;
 /// Operators
 pub mod operators;
 mod parser;
-/// Polynomials
-pub mod polynomials;
-mod splitter;
 mod tests;
+use crate::parser::splitter::split;
+use crate::parser::{parse, ParsingError};
+pub use algebra::matrix::{Matrix, Vec2, Vec3};
 use context::Context;
-/// Matrix
-pub mod matrix;
-pub use matrix::{Matrix, Vec2, Vec3};
-use parser::parse;
-use splitter::{split, ParsingError};
 use std::str::FromStr;
 
 /// Representation of a Function
