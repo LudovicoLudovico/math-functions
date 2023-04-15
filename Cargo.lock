@@ -3,5 +3,5 @@
 version = 3
 
 [[package]]
-name = "math-functions"
-version = "0.0.1"
+name = "ruut-functions"
+version = "0.0.6"

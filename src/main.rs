@@ -1,4 +1,4 @@
-use math_functions::{context::Context, F1D, F2D, F3D};
+use ruut_functions::{context::Context, F1D, F2D, F3D};
 use std::str::FromStr;
 
 fn main() {
