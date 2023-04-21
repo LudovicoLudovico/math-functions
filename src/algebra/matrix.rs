@@ -36,9 +36,16 @@ impl<T> Matrix<T> {
         Self { mat, n_row, n_col }
     }
 
-    /// Get the element from the i-th row and j-th column (starts from 1)
-    pub fn get(&self, row: usize, col: usize) -> &T {
+    pub(crate) fn get(&self, row: usize, col: usize) -> &T {
         &self.mat[(row - 1) * self.n_row + col - 1]
+    }
+
+    pub(crate) fn get_row(&self, row: usize) -> &[T] {
+        &self.mat[(row - 1) * self.n_col..(row - 1 + self.n_col)]
+    }
+
+    pub(crate) fn get_rows(&self, from: usize, to: usize) -> &[T] {
+        &self.mat[(from - 1) * self.n_col..to * self.n_col]
     }
 }
 
@@ -99,28 +106,54 @@ impl Matrix<f64> {
     }
 }
 
-impl Matrix<Pol> {
-    /// Computes determinant (2x2 and 3x3)
-    pub fn determinant(&self) -> Pol {
-        if self.n_row != self.n_col {
-            panic!("Cant' calculate determinant of non-square matrix")
-        }
+macro_rules! impl_determinant{
+    (for $($t:ty),+) => {
+        $(impl Matrix<$t> {
+            /// Calculate determinant
+            pub fn determinant(&self) -> $t {
+                if self.n_row != self.n_col {
+                    panic!("Cant' calculate determinant of non-square matrix")
+                }
 
-        if self.n_row == 2 {
-            (self.mat[0].clone() * self.mat[3].clone())
-                - (self.mat[1].clone() * self.mat[2].clone())
-        } else if self.n_row == 3 {
-            self.get(1, 1) * self.get(2, 2) * self.get(3, 3)
-                + self.get(1, 2) * self.get(2, 3) * self.get(3, 1)
-                + self.get(1, 3) * self.get(2, 1) * self.get(3, 2)
-                - self.get(3, 1) * self.get(2, 2) * self.get(1, 3)
-                - self.get(3, 2) * self.get(2, 3) * self.get(1, 1)
-                - self.get(3, 3) * self.get(2, 1) * self.get(1, 2)
-        } else {
-            panic!("Matrix size not supported")
-        }
+                if self.n_row == 2 {
+                    (self.mat[0].clone() * self.mat[3].clone())
+                        - (self.mat[1].clone() * self.mat[2].clone())
+                } else if self.n_row == 3 {
+                    self.get(1, 1) * self.get(2, 2) * self.get(3, 3)
+                        + self.get(1, 2) * self.get(2, 3) * self.get(3, 1)
+                        + self.get(1, 3) * self.get(2, 1) * self.get(3, 2)
+                        - self.get(3, 1) * self.get(2, 2) * self.get(1, 3)
+                        - self.get(3, 2) * self.get(2, 3) * self.get(1, 1)
+                        - self.get(3, 3) * self.get(2, 1) * self.get(1, 2)
+                } else {
+                    let mut result: $t = Default::default();
+                    for (idx, el) in self.get_row(1).iter().enumerate() {
+                        let mut mat = self.get_rows(2, self.n_row).to_vec();
+                        let mut index = 0;
+
+                        mat.retain(|_| {
+                            index += 1;
+                            if index <= 2 {
+                                index - 1 != idx
+                            } else if index  > idx {
+                                (index - 1 - idx) % self.n_col != 0
+                            } else {
+                                true
+                            }
+                        });
+
+                        let sub_mat = Matrix::new(mat, self.n_col - 1, self.n_col - 1);
+                        result += (-1_f64).powf((idx + 2) as f64) * el * sub_mat.determinant();
+                    }
+
+                    result
+                }
+            }
+        })*
     }
 }
+
+impl_determinant!(for f64, Pol);
 
 impl Matrix<F2D> {
     /// Eval

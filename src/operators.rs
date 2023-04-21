@@ -1,3 +1,6 @@
+use crate::algebra::rational::Rational;
+use crate::FunctionType;
+
 use super::{Function, Operation, F1D, F2D, F3D};
 use std::fmt::Display;
 use std::ops::{Add, Div, Mul, Sub};
@@ -40,12 +43,7 @@ macro_rules! impl_ops{
         $(impl $t {
             /// Raise function to a f64
             pub fn powf(self, exp: f64) -> Self {
-                Self(
-                    Function::Binary {
-                        operation: Operation::Pow,
-                        terms: (Box::new(self.0), Box::new(Function::Num(exp)))
-                    }
-                )
+                Self(self.0.powf(exp))
             }
         })*
 
@@ -149,6 +147,11 @@ impl Sub for Function {
             return Function::Num(0.);
         }
 
+        if let Function::Num(first) = &self {
+            if first == &0. {
+                return -1. * rhs;
+            }
+        }
         if let Function::Binary {
             operation: Operation::Add,
             terms,
@@ -336,6 +339,12 @@ impl Div for Function {
                 return Function::Num(0.);
             }
             if let Function::Num(val2) = rhs {
+                if val1.fract() == 0.0 && val2.fract() == 0.0 {
+                    return Function::Rational {
+                        val: Rational::new(val1 as i32, val2 as i32),
+                    };
+                }
+
                 return Function::Num(val1 / val2);
             }
         }
@@ -377,6 +386,52 @@ impl Function {
                 return Function::Num(val_1.powf(*val_2));
             }
         }
+
+        if let Function::E = &self {
+            if let Function::Special {
+                kind: FunctionType::Ln,
+                argument,
+            } = &rhs
+            {
+                return *argument.clone();
+            }
+
+            if let Function::Binary {
+                operation: Operation::Mul,
+                terms,
+            } = &rhs
+            {
+                if let Function::Num(val) = *terms.0 {
+                    if let Function::Special {
+                        kind: FunctionType::Ln,
+                        argument,
+                    } = &*terms.1
+                    {
+                        return argument.clone().powf(val);
+                    }
+                }
+            }
+        }
+
+        if let Function::Binary {
+            operation: Operation::Pow,
+            terms,
+        } = &self
+        {
+            let base = &terms.0;
+
+            if let Function::Num(first_exp) = *terms.1 {
+                if let Function::Num(second_exp) = &rhs {
+                    return base.clone().powf(first_exp * second_exp);
+                }
+            }
+            if let Function::Rational { val } = &*terms.1 {
+                if let Function::Rational { val: val2 } = &rhs {
+                    return base.clone().powf(*val2 * *val);
+                }
+            }
+        }
+
         Function::Binary {
             terms: (Box::new(self), Box::new(rhs)),
             operation: Operation::Pow,
@@ -389,6 +444,18 @@ impl Function {
 
         if rhs == 0. {
             return Function::Num(1.);
+        }
+
+        if let Function::Binary {
+            operation: Operation::Pow,
+            terms,
+        } = &self
+        {
+            let base = &terms.0;
+
+            if let Function::Num(first_exp) = *terms.1 {
+                return base.clone().powf(first_exp * rhs);
+            }
         }
 
         Function::Binary {

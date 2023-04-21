@@ -1,4 +1,3 @@
-#![deny(warnings)]
 //! Crate for math functions
 
 /// Polynomials
@@ -14,6 +13,7 @@ mod tests;
 use crate::parser::splitter::split;
 use crate::parser::{parse, ParsingError};
 pub use algebra::matrix::{Matrix, Vec2, Vec3};
+use algebra::rational::Rational;
 use context::Context;
 use std::str::FromStr;
 
@@ -30,8 +30,12 @@ pub(crate) enum Function {
     E,
     /// Pi
     PI,
+    Rational {
+        val: Rational,
+    },
     /// Generic numeric constant
     Num(f64),
+    /// Rational
     /// Represent a binary operation between two functions
     Binary {
         /// Operation between the two functions

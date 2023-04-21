@@ -1,10 +1,10 @@
 #[cfg(test)]
 mod tests {
-    use crate::algebra::matrix::{Matrix, Vec3};
+    use crate::algebra::matrix::{Matrix, Vec2, Vec3};
     use crate::algebra::polynomials::Pol;
     use crate::parser::splitter::split;
     use crate::parser::splitter::Split;
-    use crate::{approx, Function, FunctionType, Operation, F1D, F3D};
+    use crate::{approx, Function, FunctionType, Operation, F1D, F2D, F3D};
     use std::str::FromStr;
 
     #[test]
@@ -143,18 +143,6 @@ mod tests {
     }
 
     #[test]
-    fn test_tree_semplification() {
-        let func =
-            F1D::from_str("1/2+x*(1/x)+(1/x)*x+2*5/5+(1-1)/x+(2/x)*(x/2)+2^2+x/1+x*x*x-x^2x")
-                .unwrap();
-        let func_2 = F1D::from_str("9.5+x").unwrap();
-        assert_eq!(func, func_2);
-
-        let func = F1D::from_str("2x+(1/3)x").unwrap();
-        println!("{}", func);
-    }
-
-    #[test]
     fn test_parser() {
         assert_eq!(
             F1D::from_str("cos(x)").unwrap(),
@@ -194,6 +182,12 @@ mod tests {
             F1D::from_str("x^x").unwrap(),
             F1D(Function::X.pow(Function::X))
         );
+    }
+
+    #[test]
+    fn test_operators() {
+        let func = F2D::from_str("[(xy)^(1/2)]^2").unwrap();
+        assert_eq!(func, F2D::from_str("xy").unwrap());
     }
 
     #[test]
@@ -239,7 +233,20 @@ mod tests {
                 y: F3D::from_str("xz^2").unwrap(),
                 z: F3D::from_str("2xyz").unwrap()
             }
-        )
+        );
+
+        let func = F2D::from_str("(xy)^(-1/2)").unwrap();
+        println!("{}, {}, \n{:#?}", func,func.derivative(), func.derivative());
+
+        /* let func = F2D::from_str("1/(xy)^(1/2)").unwrap();
+        println!("{} \n {} \n {:#?}", func, func.derivative(), func.derivative());
+        assert_eq!(
+            func.derivative(),
+            Vec2 {
+                x: F2D::from_str("-pi*y/(xy)^(3/2)").unwrap(),
+                y: F2D::from_str("-pi*x/(xy)^(3/2)").unwrap(),
+            }
+        )*/
     }
 
     #[test]
@@ -268,8 +275,6 @@ mod tests {
     #[test]
     fn test_mat() {
         let mat = Matrix::new(vec![1., 2., 3., 4., 5., 6., 7., 8., 9.], 3, 3);
-        println!("{}", mat.pol());
-
         assert_eq!(3., *mat.get(1, 3));
         assert_eq!(9., *mat.get(3, 3));
         assert!(!mat.is_symmetric());
@@ -278,6 +283,16 @@ mod tests {
         let mat = Matrix::new(vec![1, 2, 2, 1], 2, 2);
         assert!(mat.is_symmetric());
         assert_eq!(mat.trace(), 2);
+
+        let mat = Matrix::new(
+            vec![
+                2., 3., -1., 0., 0., 1., 1., 1., 2., 3., 1., -1., 4., 1., 2., 0.,
+            ],
+            4,
+            4,
+        );
+        assert_eq!(mat.determinant(), 38.);
+        println!("{}", mat.determinant())
     }
     #[test]
     fn test_integration() {

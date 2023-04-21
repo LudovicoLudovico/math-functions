@@ -1,9 +1,9 @@
-use super::{Function, FunctionType, Operation, F1D, F2D, F3D};
-use crate::context::Context;
 use super::Matrix;
+use super::{Function, FunctionType, Operation, F1D, F2D, F3D};
 use super::{Vec2, Vec3};
-use crate::parser::{parse, ParsingError};
+use crate::context::Context;
 use crate::parser::splitter::split;
+use crate::parser::{parse, ParsingError};
 use std::fmt::Display;
 
 impl Function {
@@ -13,6 +13,7 @@ impl Function {
             Self::Y => inputs[1],
             Self::Z => inputs[2],
             Self::Num(num) => *num,
+            Self::Rational { val } => val.eval(),
             Self::E => std::f64::consts::E,
             Self::PI => std::f64::consts::PI,
             Self::Binary { operation, terms } => {
@@ -32,6 +33,7 @@ impl Function {
             Self::X => Self::Num(on_x),
             Self::Y => Self::Num(on_y),
             Self::Z => Self::Num(on_z),
+            Self::Rational { val: _ } => Function::Num(0.),
             Self::Num(_) => Self::Num(0.),
             Self::E | Self::PI => Self::Num(0.),
             Self::Binary { operation, terms } => match operation {
@@ -65,7 +67,7 @@ impl Function {
                         };
 
                         terms.0.derivative(on_x, on_y, on_z)
-                            * (val * terms.1.clone().powf(val - 1.))
+                            * (val * terms.0.clone().powf(val - 1.))
                     } else if let Function::E = *terms.0 {
                         terms.1.derivative(on_x, on_y, on_z)
                             * (terms.0.clone().pow(*terms.1.clone()))
@@ -209,7 +211,7 @@ impl F1D {
     /// Builds a F1D from a string and a context (meaning that you can use already created
     /// functions)
     /// ```
-    /// use math_functions::{F1D, context::Context};
+    /// use ruut_functions::{F1D, context::Context};
     /// use std::str::FromStr;
     ///
     /// let func = F1D::from_str("x^2").unwrap();
@@ -231,7 +233,7 @@ impl F1D {
 
     /// Evaluate F1D at a given x
     /// ```
-    /// use math_functions::{F1D,approx};
+    /// use ruut_functions::{F1D,approx};
     /// use std::str::FromStr;
     ///
     /// let func = F1D::from_str("xsin(x)").unwrap();
@@ -244,7 +246,7 @@ impl F1D {
 
     /// Computes the derivative of a F1D
     /// ```
-    /// use math_functions::F1D;
+    /// use ruut_functions::F1D;
     /// use std::str::FromStr;
     ///
     /// let func = F1D::from_str("xln(x)").unwrap();
@@ -257,7 +259,7 @@ impl F1D {
 
     /// Computes the definite integral of F1D
     /// ```
-    /// use math_functions::{F1D,approx};
+    /// use ruut_functions::{F1D,approx};
     /// use std::str::FromStr;
     ///
     /// let func = F1D::from_str("x^2+6").unwrap();
@@ -280,7 +282,7 @@ impl F2D {
     /// Builds a F2D from a string and a context (meaning that you can use already created
     /// functions)
     /// ```
-    /// use math_functions::{F1D,F2D,F3D, context::Context};
+    /// use ruut_functions::{F1D,F2D,F3D, context::Context};
     /// use std::str::FromStr;
     ///
     /// let func = F1D::from_str("x^2").unwrap();
@@ -301,7 +303,7 @@ impl F2D {
     }
     /// Evaluate F2D at a given (x,y)
     /// ```
-    /// use math_functions::{F2D,approx};
+    /// use ruut_functions::{F2D,approx};
     /// use std::str::FromStr;
     ///
     /// let func = F2D::from_str("ysin(x)").unwrap();
@@ -314,7 +316,7 @@ impl F2D {
 
     /// Computes the derivative of a F2D
     /// ```
-    /// use math_functions::{F2D, Vec2};
+    /// use ruut_functions::{F2D, Vec2};
     /// use std::str::FromStr;
     ///
     /// let func = F2D::from_str("yln(x)").unwrap();
@@ -333,7 +335,7 @@ impl F3D {
     /// Builds a F3D from a string and a context (meaning that you can use already created
     /// functions)
     /// ```
-    /// use math_functions::{F2D,F3D, context::Context};
+    /// use ruut_functions::{F2D,F3D, context::Context};
     /// use std::str::FromStr;
     ///
     /// let func = F2D::from_str("yx^2").unwrap();
@@ -354,7 +356,7 @@ impl F3D {
     }
     /// Evaluate F3D at a given (x,y,z)
     /// ```
-    /// use math_functions::{F3D,approx};
+    /// use ruut_functions::{F3D,approx};
     /// use std::str::FromStr;
     ///
     /// let func = F3D::from_str("ysin(x)ln(z)").unwrap();
@@ -367,7 +369,7 @@ impl F3D {
 
     /// Computes the gradient of a F3D
     /// ```
-    /// use math_functions::{F3D, Vec3};
+    /// use ruut_functions::{F3D, Vec3};
     /// use std::str::FromStr;
     ///
     /// let func = F3D::from_str("xyz^2").unwrap();
@@ -384,7 +386,7 @@ impl F3D {
     }
     /// Computes hessian matrix of the given function
     ///  ```
-    ///  use math_functions::{F3D, Matrix};
+    ///  use ruut_functions::{F3D, Matrix};
     ///  use std::str::FromStr;
     ///  let func = F3D::from_str("3x^2+y^4+xyz^2").unwrap();
     ///  let hessian = func.hessian();
@@ -475,6 +477,7 @@ impl Display for Function {
             Self::X => write!(f, "x"),
             Self::Y => write!(f, "y"),
             Self::Z => write!(f, "z"),
+            Self::Rational { val } => write!(f, "{}/{}", val.num(), val.den()),
             Self::Num(val) => write!(f, "{val}"),
             Self::Special { kind, argument } => match kind {
                 FunctionType::Ln => write!(f, "ln({argument})"),
@@ -506,14 +509,14 @@ impl Display for Function {
                     let second = &terms.1;
 
                     if let Function::Binary {
-                        operation: Operation::Add | Operation::Sub,
+                        operation: Operation::Add | Operation::Sub | Operation::Pow,
                         terms: _,
                     } = &*terms.0
                     {
                         return write!(f, "({}){}", first, second);
                     }
                     if let Function::Binary {
-                        operation: Operation::Add | Operation::Sub,
+                        operation: Operation::Add | Operation::Sub | Operation::Pow,
                         terms: _,
                     } = &*terms.1
                     {
@@ -522,7 +525,36 @@ impl Display for Function {
 
                     write!(f, "{}{}", terms.0, terms.1)
                 }
-                Operation::Div => write!(f, "{}/{}", terms.0, terms.1),
+                Operation::Div => {
+                    let first = &terms.0;
+                    let second = &terms.1;
+
+                    if let Function::Num(_) = *terms.1 {
+                        return write!(f, "{}/{}", terms.0, terms.1);
+                    }
+                    if let Function::Binary {
+                        operation: Operation::Add | Operation::Sub,
+                        terms: _,
+                    } = &*terms.0
+                    {
+                        if let Function::Binary {
+                            operation: _,
+                            terms: _,
+                        } = &*terms.1
+                        {
+                            return write!(f, "({})/({})", first, second);
+                        }
+                        return write!(f, "({})/{}", first, second);
+                    }
+                    if let Function::Binary {
+                        operation: _,
+                        terms: _,
+                    } = &*terms.1
+                    {
+                        return write!(f, "{}/({})", first, second);
+                    }
+                    write!(f, "{}/{}", terms.0, terms.1)
+                }
                 Operation::Pow => {
                     let first = &terms.0;
                     let second = &terms.1;
