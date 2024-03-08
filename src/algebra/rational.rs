@@ -1,6 +1,6 @@
 use std::ops::{Add, Div, Mul, Sub};
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(Debug, Clone)]
 pub struct Rational {
     num: i32,
     den: u32,
@@ -26,6 +26,15 @@ impl Rational {
             den: den / gcd,
         }
     }
+    pub fn new_from_int(num: i32) -> Self {
+        Rational { num, den: 1 }
+    }
+    pub fn zero() -> Self {
+        Rational { num: 0, den: 1 }
+    }
+    pub fn is_integer(&self) -> bool {
+        self.den == 1
+    }
     pub fn eval(&self) -> f64 {
         self.num as f64 / (self.den as f64)
     }
@@ -37,15 +46,34 @@ impl Rational {
     }
 }
 
+impl PartialEq<i32> for Rational {
+    fn eq(&self, other: &i32) -> bool {
+        self.num == *other && self.den == 1
+    }
+}
+impl PartialEq for Rational {
+    fn eq(&self, other: &Self) -> bool {
+        self.num == other.num && self.den == other.den
+    }
+}
+
 impl Add for Rational {
     type Output = Self;
 
     fn add(self, rhs: Self) -> Self::Output {
-        let lcm = lcm(self.den, rhs.den);
+        let lcm = lcm(self.den, rhs.den) as i32;
         Rational::new(
-            lcm as i32 / self.den as i32 * self.num + lcm as i32 / rhs.den as i32 * rhs.num,
-            lcm as i32,
+            lcm / self.den as i32 * self.num + lcm / rhs.den as i32 * rhs.num,
+            lcm,
         )
+    }
+}
+impl Add<i32> for Rational {
+    type Output = Self;
+
+    fn add(self, rhs: i32) -> Self::Output {
+        let lcm = self.den as i32;
+        Rational::new(lcm / self.den as i32 * self.num + lcm * rhs, lcm)
     }
 }
 impl Sub for Rational {
@@ -55,6 +83,18 @@ impl Sub for Rational {
         let lcm = lcm(self.den, rhs.den);
         Rational::new(
             lcm as i32 / self.den as i32 * self.num - lcm as i32 / rhs.den as i32 * rhs.num,
+            lcm as i32,
+        )
+    }
+}
+
+impl Sub<i32> for Rational {
+    type Output = Self;
+
+    fn sub(self, rhs: i32) -> Self::Output {
+        let lcm = self.den;
+        Rational::new(
+            lcm as i32 / self.den as i32 * self.num - lcm as i32 * rhs,
             lcm as i32,
         )
     }
@@ -75,8 +115,10 @@ impl Div for Rational {
 }
 
 pub fn gcd(mut n: u32, mut m: u32) -> u32 {
-    assert!(n != 0 && m != 0);
-
+    assert!(n != 0 || m != 0);
+    if n == 0 {
+        std::mem::swap(&mut n, &mut m);
+    }
     while m != 0 {
         if m < n {
             std::mem::swap(&mut m, &mut n);

@@ -2,6 +2,7 @@
 mod tests {
     use crate::algebra::matrix::{Matrix, Vec2, Vec3};
     use crate::algebra::polynomials::Pol;
+    use crate::algebra::rational::Rational;
     use crate::parser::splitter::split;
     use crate::parser::splitter::Split;
     use crate::{approx, Function, FunctionType, Operation, F1D, F2D, F3D};
@@ -160,7 +161,7 @@ mod tests {
                         kind: FunctionType::Cos,
                         argument: Box::new(Function::X)
                     }),
-                    Box::new(2. * Function::X.powf(3.))
+                    Box::new(2 * Function::X.powr(Rational::new_from_int(3)))
                 ),
                 operation: Operation::Add
             })
@@ -168,15 +169,15 @@ mod tests {
 
         assert_eq!(
             F1D::from_str("-x^2").unwrap(),
-            F1D(-1. * (Function::X.powf(2.)))
+            F1D(-1 * Function::X.powr(Rational::new_from_int(2)))
         );
 
         assert_eq!(
             F1D::from_str("e^(x^2)").unwrap(),
-            F1D(Function::E.pow(Function::X.powf(2.)))
+            F1D(Function::E.pow(Function::X.powr(Rational::new_from_int(2))))
         );
 
-        assert_eq!(F1D::from_str("3+x").unwrap(), F1D(3. + Function::X));
+        assert_eq!(F1D::from_str("3+x").unwrap(), F1D(3 + Function::X));
 
         assert_eq!(
             F1D::from_str("x^x").unwrap(),
@@ -193,7 +194,10 @@ mod tests {
     #[test]
     fn test_derivative() {
         let func = F1D::from_str("3x+7+e").unwrap();
-        assert_eq!(func.derivative(), F1D(Function::Num(3.)));
+        assert_eq!(
+            func.derivative(),
+            F1D(Function::Rational(Rational::new_from_int(3)))
+        );
 
         let func = F1D::from_str("x*sin(x)").unwrap();
         assert_eq!(
@@ -211,12 +215,14 @@ mod tests {
         let func = F1D::from_str("tan(x^2)").unwrap();
         assert_eq!(
             func.derivative(),
-            F1D((Function::Num(2.) * Function::X)
-                * Function::Special {
-                    kind: FunctionType::Sec,
-                    argument: Box::new(Function::X.powf(2.))
-                }
-                .powf(2.))
+            F1D(
+                (Function::Rational(Rational::new_from_int(2)) * Function::X)
+                    * Function::Special {
+                        kind: FunctionType::Sec,
+                        argument: Box::new(Function::X.powr(Rational::new_from_int(2)))
+                    }
+                    .powr(Rational::new_from_int(2))
+            )
         );
 
         let func = F1D::from_str("x^x").unwrap();
@@ -236,7 +242,12 @@ mod tests {
         );
 
         let func = F2D::from_str("(xy)^(-1/2)").unwrap();
-        println!("{}, {}, \n{:#?}", func,func.derivative(), func.derivative());
+        println!(
+            "{}, {}, \n{:#?}",
+            func,
+            func.derivative(),
+            func.derivative()
+        );
 
         /* let func = F2D::from_str("1/(xy)^(1/2)").unwrap();
         println!("{} \n {} \n {:#?}", func, func.derivative(), func.derivative());

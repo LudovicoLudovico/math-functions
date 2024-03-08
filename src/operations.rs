@@ -1,6 +1,7 @@
 use super::Matrix;
 use super::{Function, FunctionType, Operation, F1D, F2D, F3D};
 use super::{Vec2, Vec3};
+use crate::algebra::rational::Rational;
 use crate::context::Context;
 use crate::parser::splitter::split;
 use crate::parser::{parse, ParsingError};
@@ -12,8 +13,7 @@ impl Function {
             Self::X => inputs[0],
             Self::Y => inputs[1],
             Self::Z => inputs[2],
-            Self::Num(num) => *num,
-            Self::Rational { val } => val.eval(),
+            Self::Rational(val) => val.eval(),
             Self::E => std::f64::consts::E,
             Self::PI => std::f64::consts::PI,
             Self::Binary { operation, terms } => {
@@ -28,14 +28,13 @@ impl Function {
         }
     }
 
-    fn derivative(&self, on_x: f64, on_y: f64, on_z: f64) -> Self {
+    fn derivative(&self, on_x: i32, on_y: i32, on_z: i32) -> Self {
         match self {
-            Self::X => Self::Num(on_x),
-            Self::Y => Self::Num(on_y),
-            Self::Z => Self::Num(on_z),
-            Self::Rational { val: _ } => Function::Num(0.),
-            Self::Num(_) => Self::Num(0.),
-            Self::E | Self::PI => Self::Num(0.),
+            Self::X => Self::Rational(Rational::new_from_int(on_x)),
+            Self::Y => Self::Rational(Rational::new_from_int(on_y)),
+            Self::Z => Self::Rational(Rational::new_from_int(on_z)),
+            Self::Rational(_) => Self::Rational(Rational::zero()),
+            Self::E | Self::PI => Self::Rational(Rational::zero()),
             Self::Binary { operation, terms } => match operation {
                 Operation::Add => {
                     terms.0.derivative(on_x, on_y, on_z) + terms.1.derivative(on_x, on_y, on_z)
@@ -50,24 +49,24 @@ impl Function {
                 Operation::Div => {
                     (terms.0.derivative(on_x, on_y, on_z) * *terms.1.clone()
                         - *terms.0.clone() * terms.1.derivative(on_x, on_y, on_z))
-                        / (terms.1.clone().powf(2.))
+                        / (terms.1.clone().powr(Rational::new_from_int(2)))
                 }
                 Operation::Pow => {
-                    if let Function::Num(val) = *terms.1 {
-                        if on_x != 0. {
+                    if let Function::Rational(val) = &*terms.1 {
+                        if on_x != 0 {
                             if let Function::X = *terms.0 {
-                                return val * Function::X.powf(val - 1.);
+                                return val.clone() * Function::X.powr(val.clone() - 1);
                             }
-                        } else if on_y != 0. {
+                        } else if on_y != 0 {
                             if let Function::Y = *terms.0 {
-                                return val * Function::Y.powf(val - 1.);
+                                return val.clone() * Function::Y.powr(val.clone() - 1);
                             }
                         } else if let Function::Z = *terms.0 {
-                            return val * Function::Z.powf(val - 1.);
+                            return val.clone() * Function::Z.powr(val.clone() - 1);
                         };
 
                         terms.0.derivative(on_x, on_y, on_z)
-                            * (val * terms.0.clone().powf(val - 1.))
+                            * (val.clone() * terms.0.clone().powr(val.clone() - 1))
                     } else if let Function::E = *terms.0 {
                         terms.1.derivative(on_x, on_y, on_z)
                             * (terms.0.clone().pow(*terms.1.clone()))
@@ -99,7 +98,7 @@ impl Function {
                         }
                     }
                     FunctionType::Cos => {
-                        -1. * arg
+                        -1 * arg
                             * Function::Special {
                                 kind: FunctionType::Sin,
                                 argument,
@@ -110,15 +109,15 @@ impl Function {
                             kind: FunctionType::Sec,
                             argument,
                         }
-                        .powf(2.)
+                        .powr(Rational::new_from_int(2))
                     }
                     FunctionType::Cot => {
-                        -1. * arg
+                        -1 * arg
                             / (Function::Special {
                                 kind: FunctionType::Sin,
                                 argument,
                             })
-                            .powf(2.)
+                            .powr(Rational::new_from_int(2))
                     }
                     FunctionType::Sec => {
                         arg * Function::Special {
@@ -130,7 +129,7 @@ impl Function {
                         }
                     }
                     FunctionType::Csc => {
-                        -1. * arg
+                        -1 * arg
                             * Function::Special {
                                 kind: FunctionType::Cot,
                                 argument: argument.clone(),
@@ -140,9 +139,16 @@ impl Function {
                                 argument: argument.clone(),
                             }
                     }
-                    FunctionType::ASin => arg / (1. - argument.powf(2.)).powf(0.5),
-                    FunctionType::ACos => -1. * arg / (1. - argument.powf(2.)).powf(0.5),
-                    FunctionType::ATan => arg / (1. + argument.powf(2.)),
+                    FunctionType::ASin => {
+                        arg / (1 - argument.powr(Rational::new_from_int(2)))
+                            .powr(Rational::new(1, 2))
+                    }
+                    FunctionType::ACos => {
+                        -1 * arg
+                            / (1 - argument.powr(Rational::new_from_int(2)))
+                                .powr(Rational::new(1, 2))
+                    }
+                    FunctionType::ATan => arg / (1 + argument.powr(Rational::new_from_int(2))),
                     FunctionType::Sinh => {
                         arg * Function::Special {
                             kind: FunctionType::Cosh,
@@ -160,18 +166,18 @@ impl Function {
                             kind: FunctionType::Sech,
                             argument,
                         }
-                        .powf(2.)
+                        .powr(Rational::new_from_int(2))
                     }
                     FunctionType::Coth => {
-                        -1. * arg
+                        -1 * arg
                             * Function::Special {
                                 kind: FunctionType::Csch,
                                 argument,
                             }
-                            .powf(2.)
+                            .powr(Rational::new_from_int(2))
                     }
                     FunctionType::Sech => {
-                        -1. * arg
+                        -1 * arg
                             * Function::Special {
                                 kind: FunctionType::Sech,
                                 argument: argument.clone(),
@@ -182,7 +188,7 @@ impl Function {
                             }
                     }
                     FunctionType::Csch => {
-                        -1. * arg
+                        -1 * arg
                             * Function::Special {
                                 kind: FunctionType::Csch,
                                 argument: argument.clone(),
@@ -192,9 +198,16 @@ impl Function {
                                 argument: argument.clone(),
                             }
                     }
-                    FunctionType::ASinh => arg / (1. + argument.powf(2.)).powf(0.5),
-                    FunctionType::ACosh => arg * (argument.powf(2.) - 1.).powf(0.5),
-                    FunctionType::ATanh => arg / (1. - argument.powf(2.)),
+                    FunctionType::ASinh => {
+                        arg / (1 + argument.powr(Rational::new_from_int(2)))
+                            .powr(Rational::new(1, 2))
+                    }
+                    FunctionType::ACosh => {
+                        arg * (argument.powr(Rational::new_from_int(2))
+                            - Function::Rational(Rational::new_from_int(1)))
+                        .powr(Rational::new(1, 2))
+                    }
+                    FunctionType::ATanh => arg / (1 - argument.powr(Rational::new_from_int(2))),
                     FunctionType::Abs => {
                         arg * *argument.clone()
                             / Function::Special {
@@ -254,7 +267,7 @@ impl F1D {
     /// assert_eq!(func.derivative(), F1D::from_str("ln(x)+1").unwrap());
     /// ```
     pub fn derivative(&self) -> Self {
-        F1D(self.0.derivative(1., 0., 0.))
+        F1D(self.0.derivative(1, 0, 0))
     }
 
     /// Computes the definite integral of F1D
@@ -326,8 +339,8 @@ impl F2D {
     /// ```
     pub fn derivative(&self) -> Vec2<Self> {
         Vec2 {
-            x: F2D(self.0.derivative(1., 0., 0.)),
-            y: F2D(self.0.derivative(0., 1., 0.)),
+            x: F2D(self.0.derivative(1, 0, 0)),
+            y: F2D(self.0.derivative(0, 1, 0)),
         }
     }
 }
@@ -379,9 +392,9 @@ impl F3D {
     /// ```
     pub fn derivative(&self) -> Vec3<Self> {
         Vec3 {
-            x: F3D(self.0.derivative(1., 0., 0.)),
-            y: F3D(self.0.derivative(0., 1., 0.)),
-            z: F3D(self.0.derivative(0., 0., 1.)),
+            x: F3D(self.0.derivative(1, 0, 0)),
+            y: F3D(self.0.derivative(0, 1, 0)),
+            z: F3D(self.0.derivative(0, 0, 1)),
         }
     }
     /// Computes hessian matrix of the given function
@@ -412,21 +425,21 @@ impl F3D {
     /// assert_eq!(result, hessian);
     /// ```
     pub fn hessian(&self) -> Matrix<F3D> {
-        let deriv_x = self.0.derivative(1., 0., 0.);
-        let deriv_y = self.0.derivative(0., 1., 0.);
-        let deriv_z = self.0.derivative(0., 0., 1.);
+        let deriv_x = self.0.derivative(1, 0, 0);
+        let deriv_y = self.0.derivative(0, 1, 0);
+        let deriv_z = self.0.derivative(0, 0, 1);
 
         Matrix::new(
             vec![
-                F3D(deriv_x.derivative(1., 0., 0.)),
-                F3D(deriv_x.derivative(0., 1., 0.)),
-                F3D(deriv_x.derivative(0., 0., 1.)),
-                F3D(deriv_y.derivative(1., 0., 0.)),
-                F3D(deriv_y.derivative(0., 1., 0.)),
-                F3D(deriv_y.derivative(0., 0., 1.)),
-                F3D(deriv_z.derivative(1., 0., 0.)),
-                F3D(deriv_z.derivative(0., 1., 0.)),
-                F3D(deriv_z.derivative(0., 0., 1.)),
+                F3D(deriv_x.derivative(1, 0, 0)),
+                F3D(deriv_x.derivative(0, 1, 0)),
+                F3D(deriv_x.derivative(0, 0, 1)),
+                F3D(deriv_y.derivative(1, 0, 0)),
+                F3D(deriv_y.derivative(0, 1, 0)),
+                F3D(deriv_y.derivative(0, 0, 1)),
+                F3D(deriv_z.derivative(1, 0, 0)),
+                F3D(deriv_z.derivative(0, 1, 0)),
+                F3D(deriv_z.derivative(0, 0, 1)),
             ],
             3,
             3,
@@ -477,8 +490,7 @@ impl Display for Function {
             Self::X => write!(f, "x"),
             Self::Y => write!(f, "y"),
             Self::Z => write!(f, "z"),
-            Self::Rational { val } => write!(f, "{}/{}", val.num(), val.den()),
-            Self::Num(val) => write!(f, "{val}"),
+            Self::Rational(val) => write!(f, "{}/{}", val.num(), val.den()),
             Self::Special { kind, argument } => match kind {
                 FunctionType::Ln => write!(f, "ln({argument})"),
                 FunctionType::Sin => write!(f, "sin({argument})"),
@@ -529,9 +541,6 @@ impl Display for Function {
                     let first = &terms.0;
                     let second = &terms.1;
 
-                    if let Function::Num(_) = *terms.1 {
-                        return write!(f, "{}/{}", terms.0, terms.1);
-                    }
                     if let Function::Binary {
                         operation: Operation::Add | Operation::Sub,
                         terms: _,
@@ -559,9 +568,6 @@ impl Display for Function {
                     let first = &terms.0;
                     let second = &terms.1;
 
-                    if let Function::Num(_) = *terms.1 {
-                        return write!(f, "{}^{}", terms.0, terms.1);
-                    }
                     if let Function::Binary {
                         operation: Operation::Add | Operation::Sub,
                         terms: _,

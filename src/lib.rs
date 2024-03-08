@@ -30,12 +30,8 @@ pub(crate) enum Function {
     E,
     /// Pi
     PI,
-    Rational {
-        val: Rational,
-    },
-    /// Generic numeric constant
-    Num(f64),
     /// Rational
+    Rational(Rational),
     /// Represent a binary operation between two functions
     Binary {
         /// Operation between the two functions

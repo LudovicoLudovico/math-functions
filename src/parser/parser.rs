@@ -1,5 +1,6 @@
-use crate::context::Context;
 use super::splitter::{split, ParsingError, Split};
+use crate::algebra::rational::Rational;
+use crate::context::Context;
 use crate::{Function, FunctionType, Operation};
 
 pub(crate) fn parse(input: Split, ctx: &Context, dim: usize) -> Result<Function, ParsingError> {
@@ -34,7 +35,7 @@ pub(crate) fn parse(input: Split, ctx: &Context, dim: usize) -> Result<Function,
         }
     } else {
         if let Operation::Sub = input.operator {
-            return Ok(-1. * parse(split(first_operand)?, ctx, dim)?);
+            return Ok(-1 * parse(split(first_operand)?, ctx, dim)?);
         }
 
         match first_operand {
@@ -56,16 +57,19 @@ pub(crate) fn parse(input: Split, ctx: &Context, dim: usize) -> Result<Function,
                 }
             }
             _ => {
-                if first_operand.parse::<f64>().is_ok() {
-                    return Ok(Function::Num(first_operand.parse::<f64>().unwrap()));
-                } else if let Some(symbol) = ctx.get_symbol(first_operand) {
-                    return Ok(Function::Num(*symbol));
-                } else if let Some(func) = ctx.get_func(first_operand) {
+                if first_operand.parse::<i32>().is_ok() {
+                    return Ok(Function::Rational(Rational::new_from_int(
+                        first_operand.parse::<i32>().unwrap(),
+                    )));
+                }
+                // if let Some(symbol) = ctx.get_symbol(first_operand) {
+                //     return Ok(Function::Num(*symbol));
+                // }
+                if let Some(func) = ctx.get_func(first_operand) {
                     if func.1 <= dim {
                         return Ok((*func.0).clone());
-                    } else {
-                        return Err(ParsingError::CantUseHigherDimensionsFunc);
                     }
+                    return Err(ParsingError::CantUseHigherDimensionsFunc);
                 }
 
                 Err(ParsingError::UnknownToken(first_operand.to_string()))
