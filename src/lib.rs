@@ -9,7 +9,6 @@ pub mod operations;
 /// Operators
 pub mod operators;
 mod parser;
-mod tests;
 use crate::parser::splitter::split;
 use crate::parser::{parse, ParsingError};
 pub use algebra::matrix::{Matrix, Vec2, Vec3};

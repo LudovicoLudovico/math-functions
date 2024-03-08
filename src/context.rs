@@ -38,7 +38,7 @@ impl<'a> Context<'a> {
     pub fn add_symbol(&mut self, name: &'a str, value: f64) {
         self.symbols.insert(name, value);
     }
-    pub(crate) fn get_symbol(&self, name: &'a str) -> Option<&f64> {
-        self.symbols.get(name)
-    }
+    // pub(crate) fn get_symbol(&self, name: &'a str) -> Option<&f64> {
+    //     self.symbols.get(name)
+    // }
 }

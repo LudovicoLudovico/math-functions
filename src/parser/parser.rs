@@ -123,3 +123,48 @@ fn match_str_type(input: &str) -> Result<FunctionType, ParsingError> {
         _ => Err(ParsingError::UnknownToken(input.to_string())),
     }
 }
+
+#[test]
+fn test_parser() {
+    use crate::F1D;
+    use std::str::FromStr;
+
+    assert_eq!(
+        F1D::from_str("cos(x)").unwrap(),
+        F1D(Function::Special {
+            kind: FunctionType::Cos,
+            argument: Box::new(Function::X)
+        })
+    );
+
+    assert_eq!(
+        F1D::from_str("cos(x)+2x^3").unwrap(),
+        F1D(Function::Binary {
+            terms: (
+                Box::new(Function::Special {
+                    kind: FunctionType::Cos,
+                    argument: Box::new(Function::X)
+                }),
+                Box::new(2 * Function::X.powr(Rational::new_from_int(3)))
+            ),
+            operation: Operation::Add
+        })
+    );
+
+    assert_eq!(
+        F1D::from_str("-x^2").unwrap(),
+        F1D(-1 * Function::X.powr(Rational::new_from_int(2)))
+    );
+
+    assert_eq!(
+        F1D::from_str("e^(x^2)").unwrap(),
+        F1D(Function::E.pow(Function::X.powr(Rational::new_from_int(2))))
+    );
+
+    assert_eq!(F1D::from_str("3+x").unwrap(), F1D(3 + Function::X));
+
+    assert_eq!(
+        F1D::from_str("x^x").unwrap(),
+        F1D(Function::X.pow(Function::X))
+    );
+}

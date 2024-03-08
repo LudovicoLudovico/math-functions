@@ -490,7 +490,19 @@ impl Display for Function {
             Self::X => write!(f, "x"),
             Self::Y => write!(f, "y"),
             Self::Z => write!(f, "z"),
-            Self::Rational(val) => write!(f, "{}/{}", val.num(), val.den()),
+            Self::Rational(val) => {
+                if val.is_integer() {
+                    if *val == 1 {
+                        write!(f, "")
+                    } else if *val == -1 {
+                        write!(f, "-")
+                    } else {
+                        write!(f, "{}", val.num())
+                    }
+                } else {
+                    write!(f, "{}/{}", val.num(), val.den())
+                }
+            }
             Self::Special { kind, argument } => match kind {
                 FunctionType::Ln => write!(f, "ln({argument})"),
                 FunctionType::Sin => write!(f, "sin({argument})"),
@@ -595,4 +607,112 @@ impl Display for Function {
             },
         }
     }
+}
+
+#[test]
+fn test_derivative() {
+    use std::str::FromStr;
+    let func = F1D::from_str("3x+7+e").unwrap();
+    assert_eq!(
+        func.derivative(),
+        F1D(Function::Rational(Rational::new_from_int(3)))
+    );
+
+    let func = F1D::from_str("x*sin(x)").unwrap();
+    assert_eq!(
+        func.derivative(),
+        F1D(Function::Special {
+            kind: FunctionType::Sin,
+            argument: Box::new(Function::X)
+        } + (Function::X
+            * Function::Special {
+                kind: FunctionType::Cos,
+                argument: Box::new(Function::X)
+            }))
+    );
+
+    let func = F1D::from_str("tan(x^2)").unwrap();
+    assert_eq!(
+        func.derivative(),
+        F1D(
+            (Function::Rational(Rational::new_from_int(2)) * Function::X)
+                * Function::Special {
+                    kind: FunctionType::Sec,
+                    argument: Box::new(Function::X.powr(Rational::new_from_int(2)))
+                }
+                .powr(Rational::new_from_int(2))
+        )
+    );
+
+    let func = F1D::from_str("x^x").unwrap();
+    assert_eq!(
+        func.derivative(),
+        F1D::from_str("(ln(x)+1)e^(xln(x))").unwrap()
+    );
+
+    let func = F3D::from_str("xyz^2").unwrap();
+    assert_eq!(
+        func.derivative(),
+        Vec3 {
+            x: F3D::from_str("yz^2").unwrap(),
+            y: F3D::from_str("xz^2").unwrap(),
+            z: F3D::from_str("2xyz").unwrap()
+        }
+    );
+
+    let func = F2D::from_str("(xy)^(-1/2)").unwrap();
+    println!(
+        "{}, {}, \n{:#?}",
+        func,
+        func.derivative(),
+        func.derivative()
+    );
+
+    /* let func = F2D::from_str("1/(xy)^(1/2)").unwrap();
+    println!("{} \n {} \n {:#?}", func, func.derivative(), func.derivative());
+    assert_eq!(
+        func.derivative(),
+        Vec2 {
+            x: F2D::from_str("-pi*y/(xy)^(3/2)").unwrap(),
+            y: F2D::from_str("-pi*x/(xy)^(3/2)").unwrap(),
+        }
+    )*/
+}
+
+#[test]
+fn test_hessian() {
+    use std::str::FromStr;
+    let func = F3D::from_str("3x^2+y^4+xyz^2").unwrap();
+    let hessian = func.hessian();
+    println!("\n{}", hessian);
+    let result: Matrix<F3D> = Matrix::new(
+        vec![
+            F3D::from_str("6").unwrap(),
+            F3D::from_str("z^2").unwrap(),
+            F3D::from_str("2yz").unwrap(),
+            F3D::from_str("z^2").unwrap(),
+            F3D::from_str("12y^2").unwrap(),
+            F3D::from_str("2xz").unwrap(),
+            F3D::from_str("2yz").unwrap(),
+            F3D::from_str("2xz").unwrap(),
+            F3D::from_str("2xy").unwrap(),
+        ],
+        3,
+        3,
+    );
+    assert_eq!(result, hessian);
+}
+
+#[test]
+fn test_integration() {
+    use crate::approx;
+    use std::str::FromStr;
+    let func = F1D::from_str("x^3").unwrap();
+    assert_eq!(approx(func.integrate(-1., 1.5, 10_000), 4), 1.0156);
+
+    let func = F1D::from_str("sin(x)^2").unwrap();
+    assert_eq!(
+        approx(func.integrate(0., 2. * std::f64::consts::PI, 10_000), 8),
+        3.14159265
+    );
 }

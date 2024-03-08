@@ -203,3 +203,26 @@ impl<T: Display> Display for Vec3<T> {
         write!(f, "({}, {}, {})", self.x, self.y, self.z)
     }
 }
+
+#[test]
+fn test_mat() {
+    let mat = Matrix::new(vec![1., 2., 3., 4., 5., 6., 7., 8., 9.], 3, 3);
+    assert_eq!(3., *mat.get(1, 3));
+    assert_eq!(9., *mat.get(3, 3));
+    assert!(!mat.is_symmetric());
+    assert_eq!(Pol::new(vec![0., 18., 15., -1.]), mat.pol());
+
+    let mat = Matrix::new(vec![1, 2, 2, 1], 2, 2);
+    assert!(mat.is_symmetric());
+    assert_eq!(mat.trace(), 2);
+
+    let mat = Matrix::new(
+        vec![
+            2., 3., -1., 0., 0., 1., 1., 1., 2., 3., 1., -1., 4., 1., 2., 0.,
+        ],
+        4,
+        4,
+    );
+    assert_eq!(mat.determinant(), 38.);
+    println!("{}", mat.determinant())
+}
